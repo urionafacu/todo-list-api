@@ -66,6 +66,48 @@ watch:
         fi
     fi
 
+# Development with Docker DB + Hot Reload (Hybrid approach)
+dev:
+    #!/usr/bin/env bash
+    echo "🐘 Starting PostgreSQL in Docker..."
+    if docker compose up psql_bp -d 2>/dev/null; then
+        echo "✅ PostgreSQL started with Docker Compose v2"
+    else
+        echo "📦 Falling back to Docker Compose v1"
+        docker-compose up psql_bp -d
+    fi
+    
+    echo "⏳ Waiting for database to be ready..."
+    sleep 5
+    
+    echo "🔥 Starting app with hot reload..."
+    if command -v air > /dev/null; then
+        air
+    else
+        echo "Go's 'air' is not installed on your machine."
+        read -p "Do you want to install it? [Y/n] " choice
+        if [ "$choice" != "n" ] && [ "$choice" != "N" ]; then
+            go install github.com/air-verse/air@latest
+            air
+        else
+            echo "You chose not to install air. Stopping database..."
+            just dev-down
+            exit 1
+        fi
+    fi
+
+# Stop development services
+dev-down:
+    #!/usr/bin/env bash
+    echo "🛑 Stopping development services..."
+    if docker compose down 2>/dev/null; then
+        echo "✅ Services stopped with Docker Compose v2"
+    else
+        echo "📦 Falling back to Docker Compose v1"
+        docker-compose down
+        echo "✅ Services stopped with Docker Compose v1"
+    fi
+
 # Run all checks (build, test, lint)
 ci: build test
 

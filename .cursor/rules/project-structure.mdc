@@ -1,0 +1,117 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Todo List API - Project Structure & Conventions
+
+## Project Overview
+This is a Go-based REST API for a todo list application using a clean architecture pattern with PostgreSQL as the database.
+
+## Architecture & Directory Structure
+
+### Entry Point
+- **Main Application**: [cmd/api/main.go](mdc:cmd/api/main.go) - Application entry point with graceful shutdown handling
+- **Go Module**: [go.mod](mdc:go.mod) - Module definition and dependencies (Go 1.24.4)
+
+### Core Application Structure
+```
+todo-list-api/
+├── cmd/api/           # Application entry points
+├── internal/          # Private application code
+│   ├── server/        # HTTP server and routing
+│   └── database/      # Database layer and connections
+└── tmp/              # Temporary files (gitignored)
+```
+
+### Server Layer
+- **Server Configuration**: [internal/server/server.go](mdc:internal/server/server.go) - HTTP server setup with timeouts and port configuration
+- **Route Handlers**: [internal/server/routes.go](mdc:internal/server/routes.go) - Route registration, CORS middleware, and HTTP handlers
+- **Server Tests**: [internal/server/routes_test.go](mdc:internal/server/routes_test.go) - Server route testing
+
+### Database Layer
+- **Database Service**: [internal/database/database.go](mdc:internal/database/database.go) - PostgreSQL connection service with health checks
+- **Database Tests**: [internal/database/database_test.go](mdc:internal/database/database_test.go) - Database integration tests using testcontainers
+
+## Development Patterns
+
+### Environment Configuration
+- Uses `github.com/joho/godotenv` for environment variable loading
+- Database connection configured via environment variables:
+  - `BLUEPRINT_DB_DATABASE`, `BLUEPRINT_DB_PASSWORD`, `BLUEPRINT_DB_USERNAME`
+  - `BLUEPRINT_DB_PORT`, `BLUEPRINT_DB_HOST`, `BLUEPRINT_DB_SCHEMA`
+- Server port configured via `PORT` environment variable
+
+### HTTP Server Patterns
+- Uses standard `net/http` package with `http.NewServeMux()` for routing
+- CORS middleware implemented as wrapper function
+- JSON responses with proper error handling
+- Graceful shutdown with 5-second timeout
+- Health check endpoint at `/health` returning database statistics
+
+### Database Patterns
+- Interface-based design with `Service` interface
+- Singleton pattern for database connection reuse
+- Connection pooling with PostgreSQL (`github.com/jackc/pgx/v5`)
+- Comprehensive health check with connection statistics
+- Proper context handling with timeouts
+
+### Testing Patterns
+- Integration tests using `github.com/testcontainers/testcontainers-go`
+- Separate test files following Go conventions (`*_test.go`)
+- Database tests with PostgreSQL testcontainers
+
+## Development Workflow
+
+### Development Commands
+Use [justfile](mdc:justfile) for development tasks:
+- `just build` - Build the application
+- `just run` - Run the application locally
+- `just test` - Run all tests
+- `just dev` - Start PostgreSQL in Docker + hot reload with Air
+- `just dev-down` - Stop development services
+- `just docker-run` - Full Docker Compose setup
+
+### Docker Configuration
+- **Dockerfile**: [Dockerfile](mdc:Dockerfile) - Multi-stage build with Alpine Linux
+- **Docker Compose**: [docker-compose.yml](mdc:docker-compose.yml) - Development environment setup
+- Production-ready container with minimal Alpine base image
+
+## Code Style & Conventions
+
+### Package Organization
+- `cmd/` - Application entry points (main packages)
+- `internal/` - Private application code (not importable by other projects)
+- Package names are short and descriptive (`server`, `database`)
+
+### Error Handling
+- Proper error checking and logging throughout
+- HTTP error responses with appropriate status codes
+- Database connection errors logged and handled gracefully
+
+### HTTP Response Patterns
+- JSON responses with `Content-Type: application/json` headers
+- Consistent error response format
+- Proper HTTP status codes
+
+### Logging
+- Uses standard `log` package
+- Structured logging for important events (shutdown, errors)
+- Database connection and health check logging
+
+## Key Dependencies
+- **Database**: `github.com/jackc/pgx/v5` (PostgreSQL driver)
+- **Environment**: `github.com/joho/godotenv` (Environment variable loading)
+- **Testing**: `github.com/testcontainers/testcontainers-go` (Integration testing)
+
+## Adding New Features
+1. **Routes**: Add new handlers in [internal/server/routes.go](mdc:internal/server/routes.go)
+2. **Database Operations**: Extend the Service interface in [internal/database/database.go](mdc:internal/database/database.go)
+3. **Tests**: Create corresponding test files with `*_test.go` suffix
+4. **Environment Variables**: Add to docker-compose.yml and document in this rule
+
+When adding new endpoints, follow the existing patterns:
+- Register routes in `RegisterRoutes()` method
+- Implement handler methods on the `Server` struct
+- Return JSON responses with proper error handling
+- Add comprehensive tests for new functionality

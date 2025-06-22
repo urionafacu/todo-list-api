@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"todo-list-api/internal/handlers"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
@@ -14,8 +15,43 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	mux.HandleFunc("/health", s.healthHandler)
 
+	s.registerTodoRoutes(mux)
+
 	// Wrap the mux with CORS middleware
 	return s.corsMiddleware(mux)
+}
+
+func (s *Server) registerTodoRoutes(mux *http.ServeMux) {
+	todoHandlers := handlers.NewTodoHandlers(s.db.GetDB())
+
+	mux.HandleFunc("/api/todos", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			todoHandlers.GetTodos(w, r)
+		case http.MethodPost:
+			todoHandlers.CreateTodo(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	// mux.HandleFunc("/api/todos", func(w http.ResponseWriter, r *http.Request) {
+	// 	if strings.Count(r.URL.Path, "/") < 3 {
+	// 		http.Error(w, "Not found", http.StatusNotFound)
+	// 		return
+	// 	}
+
+	// 	switch r.Method {
+	// 	case http.MethodGet:
+	// 		todoHandlers.GetTodoByID(w, r)
+	// 	case http.MethodPut:
+	// 		todoHandlers.UpdateTodo(w, r)
+	// 	case http.MethodDelete:
+	// 		todoHandlers.DeleteTodo(w, r)
+	// 	default:
+	// 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	// 	}
+	// })
 }
 
 func (s *Server) corsMiddleware(next http.Handler) http.Handler {
