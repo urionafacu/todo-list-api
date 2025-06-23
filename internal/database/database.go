@@ -1,15 +1,16 @@
 package database
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -23,14 +24,14 @@ type Service interface {
 	// It returns an error if the connection cannot be closed.
 	Close() error
 
-	GetDB() *sql.DB
+	GetDB() *gorm.DB
 }
 
 type service struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
-func (s *service) GetDB() *sql.DB {
+func (s *service) GetDB() *gorm.DB {
 	return s.db
 }
 
@@ -49,11 +50,36 @@ func New() Service {
 	if dbInstance != nil {
 		return dbInstance
 	}
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", username, password, host, port, database, schema)
-	db, err := sql.Open("pgx", connStr)
+
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable search_path=%s TimeZone=UTC",
+		host, username, password, database, port, schema)
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+		NowFunc: func() time.Time {
+			return time.Now().UTC()
+		},
+	})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to connect to database:", err)
 	}
+
+	// Run auto migrations
+	if err := AutoMigrate(db); err != nil {
+		log.Fatal("Failed to run database migrations:", err)
+	}
+
+	// Get the underlying sql.DB to configure connection pool
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatal("Failed to get underlying sql.DB:", err)
+	}
+
+	// Configure connection pool
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
 	dbInstance = &service{
 		db: db,
 	}
@@ -63,17 +89,23 @@ func New() Service {
 // Health checks the health of the database connection by pinging the database.
 // It returns a map with keys indicating various health statistics.
 func (s *service) Health() map[string]string {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
 	stats := make(map[string]string)
 
+	// Get the underlying sql.DB for health checks
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		stats["status"] = "down"
+		stats["error"] = fmt.Sprintf("failed to get underlying db: %v", err)
+		log.Printf("db health check failed: %v", err)
+		return stats
+	}
+
 	// Ping the database
-	err := s.db.PingContext(ctx)
+	err = sqlDB.Ping()
 	if err != nil {
 		stats["status"] = "down"
 		stats["error"] = fmt.Sprintf("db down: %v", err)
-		log.Fatalf("db down: %v", err) // Log the error and terminate the program
+		log.Printf("db down: %v", err)
 		return stats
 	}
 
@@ -82,7 +114,7 @@ func (s *service) Health() map[string]string {
 	stats["message"] = "It's healthy"
 
 	// Get database stats (like open connections, in use, idle, etc.)
-	dbStats := s.db.Stats()
+	dbStats := sqlDB.Stats()
 	stats["open_connections"] = strconv.Itoa(dbStats.OpenConnections)
 	stats["in_use"] = strconv.Itoa(dbStats.InUse)
 	stats["idle"] = strconv.Itoa(dbStats.Idle)
@@ -117,5 +149,9 @@ func (s *service) Health() map[string]string {
 // If an error occurs while closing the connection, it returns the error.
 func (s *service) Close() error {
 	log.Printf("Disconnected from database: %s", database)
-	return s.db.Close()
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }
