@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 	"todo-list-api/internal/database"
 	"todo-list-api/internal/models"
 
+	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 )
 
@@ -54,13 +54,14 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TodoHandlers) GetTodoByID(w http.ResponseWriter, r *http.Request) {
-	id, err := h.extractIDFromPath(r.URL.Path)
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "Invalid todo ID")
 		return
 	}
 
-	todo, err := h.todoService.GetTodoByID(r.Context(), id)
+	todo, err := h.todoService.GetTodoByID(r.Context(), uint(id))
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "Failed to get todo")
 		return
@@ -75,7 +76,8 @@ func (h *TodoHandlers) GetTodoByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
-	id, err := h.extractIDFromPath(r.URL.Path)
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "Invalid todo ID")
 		return
@@ -93,7 +95,7 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	todo, err := h.todoService.UpdateTodo(r.Context(), id, req)
+	todo, err := h.todoService.UpdateTodo(r.Context(), uint(id), req)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "Failed to update todo")
 		return
@@ -108,13 +110,14 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TodoHandlers) DeleteTodo(w http.ResponseWriter, r *http.Request) {
-	id, err := h.extractIDFromPath(r.URL.Path)
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "Invalid todo ID")
 		return
 	}
 
-	err = h.todoService.DeleteTodo(r.Context(), id)
+	err = h.todoService.DeleteTodo(r.Context(), uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			WriteError(w, http.StatusNotFound, "Todo not found")
@@ -125,20 +128,4 @@ func (h *TodoHandlers) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// extractIDFromPath extracts the ID from URL paths like /api/todos/123
-func (h *TodoHandlers) extractIDFromPath(path string) (uint, error) {
-	parts := strings.Split(path, "/")
-	if len(parts) < 4 {
-		return 0, gorm.ErrInvalidData
-	}
-
-	idStr := parts[3] // /api/todos/{id}
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		return 0, err
-	}
-
-	return uint(id), nil
 }

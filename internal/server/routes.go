@@ -4,61 +4,49 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strings"
 	"todo-list-api/internal/handlers"
 	"todo-list-api/internal/middleware"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
 
-	// Register routes
-	mux.HandleFunc("/", s.HelloWorldHandler)
+	// Middleware
+	r.Use(middleware.CorsMiddleware)
+	r.Use(middleware.ApiKeyMiddleware(s.apiKey))
+	r.Use(middleware.AuthMiddleware)
 
-	mux.HandleFunc("/health", s.healthHandler)
+	// Basic routes
+	r.Get("/", s.HelloWorldHandler)
+	r.Get("/health", s.healthHandler)
 
-	s.registerTodoRoutes(mux)
-
-	handler := middleware.AuthMiddleware(mux)
-	handler = middleware.ApiKeyMiddleware(s.apiKey)(handler)
-	handler = middleware.CorsMiddleware(handler)
-	// Wrap the mux with CORS middleware
-	return handler
-}
-
-func (s *Server) registerTodoRoutes(mux *http.ServeMux) {
-	todoHandlers := handlers.NewTodoHandlers(s.db.GetDB())
-
-	// Handle collection endpoints: /api/todos
-	mux.HandleFunc("/api/todos", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			todoHandlers.GetTodos(w, r)
-		case http.MethodPost:
-			todoHandlers.CreateTodo(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
+	// API routes
+	r.Route("/api", func(r chi.Router) {
+		s.registerTodoRoutes(r)
+		// Future entities can be easily added here
+		// s.registerUserRoutes(r)
+		// s.registerProjectRoutes(r)
 	})
 
-	// Handle specific todo endpoints: /api/todos/{id}
-	mux.HandleFunc("/api/todos/", func(w http.ResponseWriter, r *http.Request) {
-		// Check if this is a path with an ID (more than 3 segments)
-		if strings.Count(r.URL.Path, "/") < 3 {
-			http.Error(w, "Not found", http.StatusNotFound)
-			return
-		}
+	return r
+}
 
-		switch r.Method {
-		case http.MethodGet:
-			todoHandlers.GetTodoByID(w, r)
-		case http.MethodPut:
-			todoHandlers.UpdateTodo(w, r)
-		case http.MethodDelete:
-			todoHandlers.DeleteTodo(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
+func (s *Server) registerTodoRoutes(r chi.Router) {
+	todoHandlers := handlers.NewTodoHandlers(s.db.GetDB())
+
+	r.Route("/todos", func(r chi.Router) {
+		// Collection routes: /api/todos
+		r.Get("/", todoHandlers.GetTodos)
+		r.Post("/", todoHandlers.CreateTodo)
+
+		// Individual item routes: /api/todos/{id}
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", todoHandlers.GetTodoByID)
+			r.Put("/", todoHandlers.UpdateTodo)
+			r.Delete("/", todoHandlers.DeleteTodo)
+		})
 	})
 }
 
