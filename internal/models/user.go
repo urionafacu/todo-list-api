@@ -23,3 +23,12 @@ type CreateUserRequest struct {
 	LastName  string `json:"lastName"`
 	Password  string `json:"password"`
 }
+
+type LoginUserRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refreshToken"`
+}

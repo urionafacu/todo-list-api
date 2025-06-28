@@ -16,12 +16,12 @@ func ApiKeyMiddleware(validApiKey string) func(http.Handler) http.Handler {
 
 			apiKey := r.Header.Get("X-API-Key")
 			if apiKey == "" {
-				w.WriteHeader(http.StatusUnauthorized)
+				w.WriteHeader(http.StatusForbidden)
 				return
 			}
 
 			if apiKey != validApiKey {
-				w.WriteHeader(http.StatusUnauthorized)
+				w.WriteHeader(http.StatusForbidden)
 				return
 			}
 

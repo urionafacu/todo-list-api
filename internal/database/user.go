@@ -29,3 +29,12 @@ func (s *UserService) CreateUser(ctx context.Context, email, firstName, lastName
 
 	return &user, nil
 }
+
+func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	var user models.User
+	result := s.db.WithContext(ctx).Where("email = ?", email).First(&user)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &user, nil
+}

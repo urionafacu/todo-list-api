@@ -13,10 +13,9 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 
-	// Middleware
+	// Global middleware
 	r.Use(middleware.CorsMiddleware)
 	r.Use(middleware.ApiKeyMiddleware(s.apiKey))
-	r.Use(middleware.AuthMiddleware)
 
 	// Basic routes
 	r.Get("/", s.HelloWorldHandler)
@@ -25,9 +24,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// API routes
 	r.Route("/api", func(r chi.Router) {
 		s.registerTodoRoutes(r)
-		// Future entities can be easily added here
-		// s.registerUserRoutes(r)
-		// s.registerProjectRoutes(r)
+		s.registerAuthRoutes(r)
 	})
 
 	return r
@@ -37,6 +34,9 @@ func (s *Server) registerTodoRoutes(r chi.Router) {
 	todoHandlers := handlers.NewTodoHandlers(s.db.GetDB())
 
 	r.Route("/todos", func(r chi.Router) {
+		// Apply authentication middleware to all todo routes
+		r.Use(middleware.AuthMiddleware)
+
 		// Collection routes: /api/todos
 		r.Get("/", todoHandlers.GetTodos)
 		r.Post("/", todoHandlers.CreateTodo)
@@ -46,6 +46,25 @@ func (s *Server) registerTodoRoutes(r chi.Router) {
 			r.Get("/", todoHandlers.GetTodoByID)
 			r.Put("/", todoHandlers.UpdateTodo)
 			r.Delete("/", todoHandlers.DeleteTodo)
+		})
+	})
+}
+
+func (s *Server) registerAuthRoutes(r chi.Router) {
+	authHandlers := handlers.NewAuthHandler(s.db.GetDB())
+
+	r.Route("/auth", func(r chi.Router) {
+		// Public auth routes (no authentication required)
+		r.Post("/register", authHandlers.Register)
+		r.Post("/login", authHandlers.Login)
+		r.Post("/refresh", authHandlers.Refresh)
+
+		// Protected auth routes (authentication required)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.AuthMiddleware)
+			// Add any protected auth routes here if needed
+			// r.Post("/logout", authHandlers.Logout)
+			// r.Get("/profile", authHandlers.GetProfile)
 		})
 	})
 }
