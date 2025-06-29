@@ -18,28 +18,35 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 
-	// Global middleware
+	// Global middleware (CORS only)
 	r.Use(middleware.CorsMiddleware)
-	r.Use(middleware.ApiKeyMiddleware(s.apiKey))
 
-	// Static files
+	// Static files (no API key required)
 	workDir, _ := os.Getwd()
 	filesDir := http.Dir(filepath.Join(workDir, "web/static"))
 	r.Handle("/static/*", http.StripPrefix("/static", http.FileServer(filesDir)))
 
-	// Basic routes
+	// Public routes (no API key required)
 	r.Get("/", s.HelloWorldHandler)
-	r.Get("/health", s.healthHandler)
 
-	// Swagger documentation
-	r.Route("/docs", func(r chi.Router) {
-		r.Get("/*", httpSwagger.WrapHandler)
+	// Swagger documentation (no API key required)
+	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/docs/", http.StatusMovedPermanently)
 	})
+	r.Handle("/docs/*", httpSwagger.WrapHandler)
 
-	// API routes
-	r.Route("/api", func(r chi.Router) {
-		s.registerAuthRoutes(r)
-		s.registerTodoRoutes(r)
+	// Routes that require API key
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.ApiKeyMiddleware(s.apiKey))
+
+		// Health check
+		r.Get("/health", s.healthHandler)
+
+		// API routes
+		r.Route("/api", func(r chi.Router) {
+			s.registerAuthRoutes(r)
+			s.registerTodoRoutes(r)
+		})
 	})
 
 	return r
