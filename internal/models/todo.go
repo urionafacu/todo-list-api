@@ -10,6 +10,8 @@ type Todo struct {
 	ID          uint           `json:"id" gorm:"primaryKey"`
 	Title       string         `json:"title" gorm:"not null"`
 	Description string         `json:"description"`
+	Priority    string         `json:"priority" gorm:"type:varchar(10);default:'low'"`
+	Category    string         `json:"category"`
 	Completed   bool           `json:"completed" gorm:"default:false"`
 	CreatedAt   time.Time      `json:"createdAt"`
 	UpdatedAt   time.Time      `json:"updatedAt"`

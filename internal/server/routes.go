@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"todo-list-api/internal/controller"
-	"todo-list-api/internal/handlers"
 	"todo-list-api/internal/middleware"
 	"todo-list-api/internal/repository"
 	"todo-list-api/internal/service"
@@ -26,8 +25,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
-		s.registerTodoRoutes(r)
 		s.registerAuthRoutes(r)
+		s.registerTodoRoutes(r)
 	})
 
 	return r
@@ -41,7 +40,7 @@ func (s *Server) registerTodoRoutes(r chi.Router) {
 
 	r.Route("/todos", func(r chi.Router) {
 		// Apply authentication middleware to all todo routes
-		r.Use(middleware.AuthMiddleware)
+		r.Use(middleware.AuthMiddleware(s.jwt))
 
 		// Collection routes: /api/todos
 		r.Get("/", todoController.GetTodos)
@@ -57,20 +56,23 @@ func (s *Server) registerTodoRoutes(r chi.Router) {
 }
 
 func (s *Server) registerAuthRoutes(r chi.Router) {
-	authHandlers := handlers.NewAuthHandler(s.db.GetDB())
+	// Initialize layers: Repository -> Service -> Controller
+	authRepo := repository.NewPostgresAuthRepository(s.db.GetDB())
+	authService := service.NewAuthService(authRepo, s.jwt)
+	authController := controller.NewAuthController(authService)
 
 	r.Route("/auth", func(r chi.Router) {
 		// Public auth routes (no authentication required)
-		r.Post("/register", authHandlers.Register)
-		r.Post("/login", authHandlers.Login)
-		r.Post("/refresh", authHandlers.Refresh)
+		r.Post("/register", authController.Register)
+		r.Post("/login", authController.Login)
+		r.Post("/refresh", authController.Refresh)
 
 		// Protected auth routes (authentication required)
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.AuthMiddleware)
+			r.Use(middleware.AuthMiddleware(s.jwt))
 			// Add any protected auth routes here if needed
-			// r.Post("/logout", authHandlers.Logout)
-			// r.Get("/profile", authHandlers.GetProfile)
+			// r.Post("/logout", authController.Logout)
+			// r.Get("/profile", authController.GetProfile)
 		})
 	})
 }
