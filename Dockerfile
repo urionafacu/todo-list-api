@@ -6,11 +6,16 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code and pre-generated docs
+# Install swag for generating documentation
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
+# Copy source code
 COPY cmd/ cmd/
 COPY internal/ internal/
 COPY web/ web/
-COPY docs/ docs/
+
+# Generate Swagger documentation
+RUN /go/bin/swag init -g cmd/api/main.go
 
 # Build the application
 RUN go build -o main cmd/api/main.go

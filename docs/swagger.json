@@ -9,7 +9,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "https://todo-list-app-production-f128.up.railway.app",
+    "host": "http://localhost:8080",
     "basePath": "/",
     "paths": {
         "/api/auth/login": {

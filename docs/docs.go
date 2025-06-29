@@ -760,7 +760,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "https://todo-list-app-production-f128.up.railway.app",
+	Host:             "http://localhost:8080",
 	BasePath:         "/",
 	Schemes:          []string{"https"},
 	Title:            "TODO List API",

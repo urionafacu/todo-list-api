@@ -109,7 +109,7 @@ definitions:
       updatedAt:
         type: string
     type: object
-host: https://todo-list-app-production-f128.up.railway.app
+host: http://localhost:8080
 info:
   contact: {}
   description: A simple and secure REST API for managing TODO tasks
