@@ -19,6 +19,7 @@ func ApiKeyMiddleware(validApiKey string) func(http.Handler) http.Handler {
 			publicPaths := []string{
 				"/health",
 				"/",
+				"/docs",
 				"/api/auth/login",
 				"/api/auth/register",
 				"/api/auth/refresh",

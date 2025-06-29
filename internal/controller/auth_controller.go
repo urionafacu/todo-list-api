@@ -18,6 +18,17 @@ func NewAuthController(authService service.AuthService) *AuthController {
 	}
 }
 
+// @Summary Register a new user
+// @Description Create a new user account
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param user body models.CreateUserRequest true "User registration data"
+// @Success 201 {object} models.User
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/auth/register [post]
 func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -39,6 +50,18 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	c.writeJSON(w, http.StatusCreated, user)
 }
 
+// @Summary Login user
+// @Description Authenticate user and return JWT tokens
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param credentials body models.LoginUserRequest true "User login credentials"
+// @Success 200 {object} models.Token
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/auth/login [post]
 func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	var req models.LoginUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -65,6 +88,18 @@ func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	c.writeJSON(w, http.StatusOK, token)
 }
 
+// @Summary Refresh access token
+// @Description Generate new access token using refresh token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param token body models.RefreshTokenRequest true "Refresh token data"
+// @Success 200 {object} models.Token
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/auth/refresh [post]
 func (c *AuthController) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req models.RefreshTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -25,6 +25,16 @@ func NewTodoController(todoService service.TodoService) *TodoController {
 	}
 }
 
+// @Summary Get all todos
+// @Description Get all todos for the authenticated user
+// @Tags todos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.Todo
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/todos [get]
 func (c *TodoController) GetTodos(w http.ResponseWriter, r *http.Request) {
 	todos, err := c.todoService.GetTodos(r.Context())
 	if err != nil {
@@ -35,6 +45,18 @@ func (c *TodoController) GetTodos(w http.ResponseWriter, r *http.Request) {
 	httputils.WriteJson(w, http.StatusOK, todos)
 }
 
+// @Summary Create a new todo
+// @Description Create a new todo item for the authenticated user
+// @Tags todos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param todo body models.CreateTodoRequest true "Todo data"
+// @Success 201 {object} models.Todo
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/todos [post]
 func (c *TodoController) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateTodoRequest
 
@@ -57,6 +79,19 @@ func (c *TodoController) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	httputils.WriteJson(w, http.StatusCreated, todo)
 }
 
+// @Summary Get todo by ID
+// @Description Get a specific todo by its ID
+// @Tags todos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Todo ID"
+// @Success 200 {object} models.Todo
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/todos/{id} [get]
 func (c *TodoController) GetTodoByID(w http.ResponseWriter, r *http.Request) {
 	id, err := c.parseIDFromURL(r)
 	if err != nil {
@@ -82,6 +117,20 @@ func (c *TodoController) GetTodoByID(w http.ResponseWriter, r *http.Request) {
 	httputils.WriteJson(w, http.StatusOK, todo)
 }
 
+// @Summary Update todo
+// @Description Update an existing todo item
+// @Tags todos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Todo ID"
+// @Param todo body models.UpdateTodoRequest true "Updated todo data"
+// @Success 200 {object} models.Todo
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/todos/{id} [put]
 func (c *TodoController) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	id, err := c.parseIDFromURL(r)
 	if err != nil {
@@ -114,6 +163,19 @@ func (c *TodoController) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	httputils.WriteJson(w, http.StatusOK, todo)
 }
 
+// @Summary Delete todo
+// @Description Delete a todo item by ID
+// @Tags todos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Todo ID"
+// @Success 204 "No Content"
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/todos/{id} [delete]
 func (c *TodoController) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	id, err := c.parseIDFromURL(r)
 	if err != nil {

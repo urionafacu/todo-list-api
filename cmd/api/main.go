@@ -1,5 +1,19 @@
 package main
 
+// @title TODO List API
+// @description A simple and secure REST API for managing TODO tasks
+// @version 1.0
+// @host https://todo-list-app-production-f128.up.railway.app
+// @BasePath /
+// @schemes https
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-API-Key
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
+
 import (
 	"context"
 	"fmt"
@@ -9,6 +23,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "todo-list-api/docs"
 	"todo-list-api/internal/server"
 )
 

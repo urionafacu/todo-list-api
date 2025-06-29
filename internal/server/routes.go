@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"todo-list-api/internal/controller"
 	"todo-list-api/internal/middleware"
 	"todo-list-api/internal/repository"
 	"todo-list-api/internal/service"
 
 	"github.com/go-chi/chi/v5"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
@@ -19,9 +22,19 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Use(middleware.CorsMiddleware)
 	r.Use(middleware.ApiKeyMiddleware(s.apiKey))
 
+	// Static files
+	workDir, _ := os.Getwd()
+	filesDir := http.Dir(filepath.Join(workDir, "web/static"))
+	r.Handle("/static/*", http.StripPrefix("/static", http.FileServer(filesDir)))
+
 	// Basic routes
 	r.Get("/", s.HelloWorldHandler)
 	r.Get("/health", s.healthHandler)
+
+	// Swagger documentation
+	r.Route("/docs", func(r chi.Router) {
+		r.Get("/*", httpSwagger.WrapHandler)
+	})
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
@@ -78,18 +91,35 @@ func (s *Server) registerAuthRoutes(r chi.Router) {
 }
 
 func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
-	resp := map[string]string{"message": "Hello World"}
-	jsonResp, err := json.Marshal(resp)
+	workDir, _ := os.Getwd()
+	htmlPath := filepath.Join(workDir, "web", "index.html")
+
+	htmlContent, err := os.ReadFile(htmlPath)
 	if err != nil {
-		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
+		log.Printf("Failed to read HTML file: %v", err)
+		// Fallback to JSON response if HTML file not found
+		resp := map[string]string{"message": "Welcome to TODO List API", "status": "HTML file not found"}
+		jsonResp, _ := json.Marshal(resp)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(jsonResp)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	if _, err := w.Write(jsonResp); err != nil {
-		log.Printf("Failed to write response: %v", err)
+
+	w.Header().Set("Content-Type", "text/html")
+	if _, err := w.Write(htmlContent); err != nil {
+		log.Printf("Failed to write HTML response: %v", err)
 	}
 }
 
+// @Summary Health check
+// @Description Check the health status of the API and database
+// @Tags health
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]string
+// @Router /health [get]
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	resp, err := json.Marshal(s.db.Health())
 	if err != nil {
