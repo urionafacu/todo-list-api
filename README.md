@@ -1,64 +1,292 @@
-# Project todo-list-api
+# Todo List API
 
-One Paragraph of project description goes here
+A simple and secure REST API for managing TODO tasks, built in Go with JWT authentication and PostgreSQL database.
 
-## Getting Started
+## 🚀 Features
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+- **TODO CRUD**: Create, read, update and delete tasks
+- **User Management**: User registration and authentication
+- **JWT Authentication**: Secure access and refresh tokens
+- **Categories & Priorities**: Organize your tasks by category and priority levels
+- **Due Dates**: Set deadlines for your tasks
+- **REST API**: Well-structured endpoints following REST standards
+- **Swagger Documentation**: Interactive API documentation
+- **PostgreSQL Database**: Reliable data persistence
+- **Soft Delete**: Logical deletion of records
+- **Graceful Shutdown**: Elegant server shutdown handling
 
-## Just Commands
+## 🛠 Tech Stack
 
-List all available commands:
+- **Language**: Go 1.24.4
+- **Web Framework**: Chi Router v5
+- **Database**: PostgreSQL
+- **ORM**: GORM
+- **Authentication**: JWT (golang-jwt/jwt)
+- **Documentation**: Swagger (swaggo/swag)
+- **Containers**: Docker & Docker Compose
+- **Validation**: go-playground/validator
+- **Testing**: Testcontainers for integration tests
+- **Hot Reload**: Air for development
+
+## 📋 Prerequisites
+
+- [Go](https://golang.org/dl/) 1.24 or higher
+- [Docker](https://www.docker.com/) and Docker Compose
+- [Just](https://github.com/casey/just) - Command runner
+
+## 🚀 Quick Start
+
+### 1. Clone the repository
+
 ```bash
-just help
+git clone <your-repository>
+cd todo-list-api
 ```
 
-Run build and test (default):
+### 2. Set up environment variables
+
 ```bash
-just
+# Copy the example environment file
+cp .env.example .env
 ```
 
-Build the application:
+Edit the `.env` file with your configuration. Required variables:
+
 ```bash
-just build
+PORT=8080
+APP_ENV=development
+BLUEPRINT_DB_HOST=localhost
+BLUEPRINT_DB_PORT=5432
+BLUEPRINT_DB_DATABASE=todo_db
+BLUEPRINT_DB_USERNAME=postgres
+BLUEPRINT_DB_PASSWORD=password
+BLUEPRINT_DB_SCHEMA=public
+API_KEY=your-api-key-here
+JWT_SECRET=your-super-secret-jwt-key
 ```
 
-Run the application:
+### 3. Install dependencies
+
 ```bash
-just run
+go mod download
 ```
 
-Create DB container:
+### 4. Start development environment (Recommended)
+
 ```bash
-just docker-run
+just dev
 ```
 
-Shutdown DB Container:
+**This is the recommended way to start the server!** The `just dev` command will:
+
+- Start PostgreSQL database in Docker
+- Wait for the database to be ready
+- Start the application with hot reload using Air
+- Automatically restart the app when you make code changes
+
+The API will be available at `http://localhost:8080`
+
+## 🔧 Available Commands
+
+### Development Commands
+
 ```bash
-just docker-down
+just                # Build and test (default command)
+just build          # Build the application
+just run            # Run the application (requires manual DB setup)
+just dev            # 🌟 RECOMMENDED: Start development environment
+just watch          # Hot reload with Air only
+just test           # Run unit tests
+just itest          # Run integration tests
+just clean          # Clean compiled binaries
 ```
 
-DB Integrations Test:
+### Docker Commands
+
 ```bash
-just itest
+just docker-run     # Start database container only
+just docker-down    # Stop database container
+just dev-down       # Stop all development services
 ```
 
-Live reload the application:
+### CI/CD Commands
+
 ```bash
-just watch
+just ci             # Run CI checks (build + test)
 ```
 
-Run the test suite:
+## 📚 API Documentation
+
+### Base URL
+
+```
+http://localhost:8080
+```
+
+### Interactive Swagger Documentation
+
+Once the application is running, access the interactive documentation at:
+
+```
+http://localhost:8080/docs
+```
+
+### Main Endpoints
+
+#### Authentication
+
+- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/refresh` - Refresh JWT token
+
+#### TODOs
+
+- `GET /api/todos` - Get all TODOs
+- `POST /api/todos` - Create new TODO
+- `GET /api/todos/{id}` - Get specific TODO
+- `PUT /api/todos/{id}` - Update TODO
+- `DELETE /api/todos/{id}` - Delete TODO
+
+### Usage Examples
+
+#### Create a TODO
+
+```bash
+curl -X POST http://localhost:8080/api/todos \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -d '{
+    "title": "Learn Go",
+    "description": "Complete Go tutorial",
+    "priority": "high",
+    "category": "learning",
+    "dueDate": "2024-12-31T23:59:59Z"
+  }'
+```
+
+#### Get all TODOs
+
+```bash
+curl -H "Authorization: Bearer <your-jwt-token>" \
+  http://localhost:8080/api/todos
+```
+
+## 🏗 Project Structure
+
+```
+todo-list-api/
+├── cmd/api/               # Application entry point
+├── internal/
+│   ├── controller/        # HTTP controllers
+│   ├── database/          # Database configuration
+│   ├── middleware/        # HTTP middlewares
+│   ├── models/           # Data models (GORM)
+│   ├── repository/       # Data access layer
+│   ├── server/           # Server configuration
+│   ├── service/          # Business logic
+│   └── utils/            # Utilities
+├── docs/                 # Generated Swagger documentation
+├── web/                  # Static files (if any)
+├── docker-compose.yml    # Docker services
+├── Dockerfile           # Application Docker image
+├── justfile            # Development commands
+├── .air.toml           # Hot reload configuration
+├── .env.example        # Environment variables template
+└── go.mod              # Go dependencies
+```
+
+## 🧪 Testing
+
+### Unit Tests
+
 ```bash
 just test
 ```
 
-Clean up binary from the last build:
+### Integration Tests
+
+Integration tests use Testcontainers to create temporary PostgreSQL instances:
+
 ```bash
-just clean
+just itest
 ```
 
-Run CI checks:
+### Local CI Pipeline
+
 ```bash
 just ci
 ```
+
+## 🐳 Docker
+
+### Development with Docker
+
+```bash
+# Recommended: Hybrid development (DB in Docker + local app with hot reload)
+just dev
+
+# Start only the database
+just docker-run
+
+# Stop development services
+just dev-down
+```
+
+### Production
+
+```bash
+# Full build with Docker Compose
+docker compose up --build
+```
+
+## 🔧 Development
+
+### Hot Reload Development
+
+For development with automatic reload (recommended):
+
+```bash
+just dev
+```
+
+This command will:
+
+1. Start PostgreSQL in Docker
+2. Wait for the database to be ready
+3. Start the application with Air hot reload
+4. Automatically restart when you make changes
+
+### Environment Variables
+
+The main environment variables include:
+
+- `APP_ENV` - Application environment
+- `PORT` - Server port
+- `BLUEPRINT_DB_HOST` - Database host
+- `BLUEPRINT_DB_PORT` - PostgreSQL port
+- `BLUEPRINT_DB_DATABASE` - Database name
+- `BLUEPRINT_DB_USERNAME` - PostgreSQL username
+- `BLUEPRINT_DB_PASSWORD` - PostgreSQL password
+- `BLUEPRINT_DB_SCHEMA` - Database schema
+- `API_KEY` - API key for additional security
+- `JWT_SECRET` - Secret key for JWT token signing
+
+Make sure to copy `.env.example` to `.env` and fill in the appropriate values.
+
+## 🤝 Contributing
+
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/new-feature`)
+3. Commit your changes (`git commit -am 'Add new feature'`)
+4. Push to the branch (`git push origin feature/new-feature`)
+5. Open a Pull Request
+
+Make sure to run tests before submitting:
+
+```bash
+just ci
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
