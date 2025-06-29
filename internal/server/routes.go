@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"todo-list-api/internal/controller"
 	"todo-list-api/internal/handlers"
 	"todo-list-api/internal/middleware"
+	"todo-list-api/internal/repository"
+	"todo-list-api/internal/service"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -31,21 +34,24 @@ func (s *Server) RegisterRoutes() http.Handler {
 }
 
 func (s *Server) registerTodoRoutes(r chi.Router) {
-	todoHandlers := handlers.NewTodoHandlers(s.db.GetDB())
+	// Initialize layers: Repository -> Service -> Controller
+	todoRepo := repository.NewPostgresTodosRepository(s.db.GetDB())
+	todoService := service.NewTodoService(todoRepo)
+	todoController := controller.NewTodoController(todoService)
 
 	r.Route("/todos", func(r chi.Router) {
 		// Apply authentication middleware to all todo routes
 		r.Use(middleware.AuthMiddleware)
 
 		// Collection routes: /api/todos
-		r.Get("/", todoHandlers.GetTodos)
-		r.Post("/", todoHandlers.CreateTodo)
+		r.Get("/", todoController.GetTodos)
+		r.Post("/", todoController.CreateTodo)
 
 		// Individual item routes: /api/todos/{id}
 		r.Route("/{id}", func(r chi.Router) {
-			r.Get("/", todoHandlers.GetTodoByID)
-			r.Put("/", todoHandlers.UpdateTodo)
-			r.Delete("/", todoHandlers.DeleteTodo)
+			r.Get("/", todoController.GetTodoByID)
+			r.Put("/", todoController.UpdateTodo)
+			r.Delete("/", todoController.DeleteTodo)
 		})
 	})
 }
