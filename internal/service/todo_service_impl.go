@@ -7,6 +7,7 @@ import (
 	"time"
 	"todo-list-api/internal/models"
 	"todo-list-api/internal/repository"
+	"todo-list-api/internal/utils"
 )
 
 type todoServiceImpl struct {
@@ -21,18 +22,16 @@ func NewTodoService(todoRepo repository.TodoRepository) TodoService {
 }
 
 func (s *todoServiceImpl) CreateTodo(ctx context.Context, req *models.CreateTodoRequest) (*models.Todo, error) {
-	// Business logic validations
-	if err := s.validateCreateTodoRequest(req); err != nil {
-		return nil, err
-	}
-
 	// Create todo entity
 	todo := &models.Todo{
 		Title:       strings.TrimSpace(req.Title),
 		Description: strings.TrimSpace(req.Description),
+		Priority:    strings.TrimSpace(req.Priority),
+		DueDate:     utils.ParseStringToDate(req.DueDate),
+		Category:    strings.TrimSpace(req.Category),
 		Completed:   false,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
 	}
 
 	// Delegate to repository
@@ -56,11 +55,6 @@ func (s *todoServiceImpl) UpdateTodo(ctx context.Context, id uint, req *models.U
 		return nil, errors.New("invalid todo ID")
 	}
 
-	// Business logic validations
-	if err := s.validateUpdateTodoRequest(req); err != nil {
-		return nil, err
-	}
-
 	// Check if todo exists
 	existingTodo, err := s.todoRepo.GetByID(ctx, id)
 	if err != nil {
@@ -75,8 +69,11 @@ func (s *todoServiceImpl) UpdateTodo(ctx context.Context, id uint, req *models.U
 		ID:          id,
 		Title:       strings.TrimSpace(req.Title),
 		Description: strings.TrimSpace(req.Description),
+		Priority:    strings.TrimSpace(req.Priority),
+		DueDate:     utils.ParseStringToDate(req.DueDate),
+		Category:    strings.TrimSpace(req.Category),
 		Completed:   req.Completed,
-		UpdatedAt:   time.Now(),
+		UpdatedAt:   time.Now().UTC(),
 		// Preserve original creation time
 		CreatedAt: existingTodo.CreatedAt,
 	}
@@ -107,48 +104,4 @@ func (s *todoServiceImpl) GetTodosByUserID(ctx context.Context, userID uint) ([]
 	}
 
 	return s.todoRepo.GetByUserID(ctx, userID)
-}
-
-// Private validation methods
-
-func (s *todoServiceImpl) validateCreateTodoRequest(req *models.CreateTodoRequest) error {
-	if req == nil {
-		return errors.New("request cannot be nil")
-	}
-
-	title := strings.TrimSpace(req.Title)
-	if title == "" {
-		return errors.New("title is required")
-	}
-
-	if len(title) > 200 {
-		return errors.New("title cannot exceed 200 characters")
-	}
-
-	if len(req.Description) > 1000 {
-		return errors.New("description cannot exceed 1000 characters")
-	}
-
-	return nil
-}
-
-func (s *todoServiceImpl) validateUpdateTodoRequest(req *models.UpdateTodoRequest) error {
-	if req == nil {
-		return errors.New("request cannot be nil")
-	}
-
-	title := strings.TrimSpace(req.Title)
-	if title == "" {
-		return errors.New("title is required")
-	}
-
-	if len(title) > 200 {
-		return errors.New("title cannot exceed 200 characters")
-	}
-
-	if len(req.Description) > 1000 {
-		return errors.New("description cannot exceed 1000 characters")
-	}
-
-	return nil
 }
