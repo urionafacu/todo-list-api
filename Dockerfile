@@ -6,27 +6,26 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Install swag for generating documentation
-RUN go install github.com/swaggo/swag/cmd/swag@latest
-
-# Copy source code
+# Copy source code and pre-generated docs
 COPY cmd/ cmd/
 COPY internal/ internal/
 COPY web/ web/
-
-# Generate Swagger documentation
-RUN swag init -g cmd/api/main.go
+COPY docs/ docs/
 
 # Build the application
 RUN go build -o main cmd/api/main.go
 
 FROM alpine:3.20.1 AS prod
+
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
+
 WORKDIR /app
 
 # Copy binary
 COPY --from=build /app/main /app/main
 
-# Copy web assets and generated docs
+# Copy web assets and docs
 COPY --from=build /app/web/ /app/web/
 COPY --from=build /app/docs/ /app/docs/
 
